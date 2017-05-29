@@ -47,7 +47,7 @@ app.post('/', function(req, res){
 // process a replay
 function process(file){
   // move file to local filestorage
-  var fname = Math.floor(Math.random()*100000000);
+  var fname = Math.floor(Math.random()*1000000000);
   file.mv(__dirname + '/filetmp/' + fname + '.StormReplay', function(err){
     if(err){
       logger.log('info', '[FILE] download error: ' + err.message);
@@ -74,7 +74,7 @@ function handleResults(fname, res, err){
     }
 
     // delete the replay
-    fs.unlink(__dirname + '/filequeue/' + fname + '.StormReplay', (err) => {
+    fs.unlink(__dirname + '/filetmp/' + fname + '.StormReplay', (err) => {
       if(err) logger.log('[FILE] delete error '+err.message);
     });
 
