@@ -1,0 +1,35 @@
+{
+  "name": "gazlogs-uploader",
+  "version": "0.0.0",
+  "description": "Uploader for Gazlogs (since Heroku does not allow routing web connections to a worker dyno)",
+  "main": "index.js",
+  "scripts": {
+    "start": "nf start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theuberkid/gazlogs.git"
+  },
+  "author": "Zeki Xu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/theuberkid/gazlogs/issues"
+  },
+  "homepage": "https://github.com/theuberkid/gazlogs#readme",
+  "dependencies": {
+    "compression": "^1.6.2",
+    "express": "^4.15.3",
+    "express-fileupload": "^0.1.3",
+    "foreman": "^2.0.0",
+    "fs-extra": "^3.0.1",
+    "mongodb": "^2.2.27",
+    "mongoose": "^4.10.3",
+    "python-shell": "^0.4.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": "6.9.2"
+  }
+}

@@ -1,0 +1,12 @@
+// replay schema
+
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+var replaySchema = new Schema({
+  map: {type: String, required: true},
+  gamemode: {type: Number, required: true}
+});
+
+var Replay = mongoose.model('Replay', replaySchema);
+module.exports = Replay;
