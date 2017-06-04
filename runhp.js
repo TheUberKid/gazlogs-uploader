@@ -4,18 +4,18 @@
 
 const PythonShell = require('python-shell');
 
-function run(filename, callback){
+function run(filename, ppath, callback){
   PythonShell.run('heroprotocol.py',
     {
       mode: 'json',
-      args: [__dirname + '/filetmp/' + filename + '.StormReplay', '--json', '--details'],
+      args: [__dirname + '/filetmp/' + filename + '.StormReplay', '--json', '--details', '--header', '--stats'],
       scriptPath: __dirname + '/heroprotocol/'
     },
     function(err, res){
       if(err){
-        callback(filename, '', err);
+        callback(filename, ppath, '', err);
       } else {
-        callback(filename, res);
+        callback(filename, ppath, res);
       }
     }
   );
