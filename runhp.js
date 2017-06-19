@@ -1,24 +1,22 @@
 'use strict';
 
-// this script runs a replay through heroprotocol.py using a python shell
+// this script runs a replay through the heroprotocoljs library
 
-const PythonShell = require('python-shell');
+const heroprotocol = require('heroprotocol');
 
-function run(filename, ppath, callback){
-  PythonShell.run('heroprotocol.py',
-    {
-      mode: 'json',
-      args: [__dirname + '/filetmp/' + filename + '.StormReplay', '--json', '--details', '--header', '--stats'],
-      scriptPath: __dirname + '/heroprotocol/'
-    },
-    function(err, res){
-      if(err){
-        callback(filename, ppath, '', err);
-      } else {
-        callback(filename, ppath, res);
-      }
-    }
-  );
+function run(filename, ppath, callback, queueCallback){
+  var file = __dirname + '/filetmp/' + filename + '.StormReplay';
+  const details = heroprotocol.get(heroprotocol.DETAILS, file);
+  const header = heroprotocol.get(heroprotocol.HEADER, file);
+
+  if(details && header){
+    Object.assign(details, header);
+    callback(filename, ppath, details);
+  } else {
+    callback(filename, ppath, '', 'Error processing replay');
+  }
+
+  if(queueCallback) queueCallback();
 }
 
 module.exports = run;
