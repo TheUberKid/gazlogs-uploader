@@ -3,8 +3,8 @@
 // includes
 var logger = require('winston');
 const config = require('./includes/config');
-var runhp = require('./runhp');
 var async = require('async');
+var heroprotocol = require('./heroprotocol');
 
 // express middleware
 var compression = require('compression');
@@ -95,7 +95,7 @@ function process(file, pollPath, callback){
         if(err) logger.log('info', '[FILE] delete error: ' + err.message);
       });
     } else {
-      runhp(fname, pollPath, handleResults, callback);
+      runReplay(fname, pollPath, callback);
     }
   });
 }
@@ -111,49 +111,61 @@ const gametypes = {
   50071: 8  // team league
 };
 
-// handle results of a replay
-function handleResults(fname, pollPath, callback, res, err){
+// run handle results of a replay
+function runReplay(fname, pollPath, callback){
 
-  if(err){
+  // get lightweight data first for validation purposes
+  var file = __dirname + '/filetmp/' + fname + '.StormReplay'
+  const details = heroprotocol.get(heroprotocol.DETAILS, file);
+  const header = heroprotocol.get(heroprotocol.HEADER, file);
+  const initdata = heroprotocol.get(heroprotocol.INITDATA, file).m_syncLobbyState;
 
-    logger.log('info', '[REPLAY] processing error: ' + err.message);
-    pollRes(pollPath, 0);
-    callback();
-    fs.unlink(__dirname + '/filetmp/' + fname + '.StormReplay', (err) => {
-      if(err) logger.log('info', '[FILE] delete error '+err.message);
-    });
-
-  } else {
+  if(details && header && initdata){
     try {
 
-      var gametype = gametypes[res.initdata.m_gameDescription.m_gameOptions.m_ammId];
+      // check if gametype matches
+      var gametype = gametypes[initdata.m_gameDescription.m_gameOptions.m_ammId];
       if(!gametype || gametype < 5){
-        pollRes(pollPath, gametype ? gametype : 0);
+        pollRes(pollPath, gametype ? gametype : 0, fname);
         callback();
       } else {
 
-        var id = res.initdata.m_gameDescription.m_randomValue;
+        // if valid gametype, check for duplicates
+        var id = initdata.m_gameDescription.m_randomValue;
         db_Replay.count({Id: id}, function(err, count){
           if(err){
             logger.log('info', '[REPLAY] database count error: ' + err.message);
-            pollRes(pollPath, 0);
+            pollRes(pollPath, 0, fname);
             callback();
           } else if(count > 0){
-            pollRes(pollPath, 1); // duplicate
+            pollRes(pollPath, 1, fname); // duplicate found
             callback();
           } else {
 
-            // good to go
+            // otherwise, good to go. Read heavier objects
+            var scores = heroprotocol.get(heroprotocol.TRACKER_EVENTS, file, {
+              '_event' : ['NNet.Replay.Tracker.SScoreResultEvent']
+            });
+            const talents = heroprotocol.get(heroprotocol.TRACKER_EVENTS, file, {
+              'm_eventName' : ['EndOfGameTalentChoices']
+            });
+            if(!scores || !talents){
+              logger.log('info', '[REPLAY] tracker events processing error');
+              pollRes(pollPath, 0, fname);
+              callback();
+              return 0;
+            }
 
-            var tmp = res.scores[res.scores.length-1].m_instanceList;
-            var scores = {};
+            // prepare for database entry
+            var tmp = scores[scores.length-1].m_instanceList;
+            scores = {};
             for(var i in tmp) scores[tmp[i].m_name] = tmp[i].m_values;
             var mvp = !!scores.EndOfMatchAwardMVPBoolean;
 
             var players = [];
             for(var i=0; i<10; i++){
-              var p = res.details.m_playerList[i];
-              var t = res.talents[i].m_stringData;
+              var p = details.m_playerList[i];
+              var t = talents[i].m_stringData;
               players.push({
                 Name: p.m_name,
                 ToonId: p.m_toon.m_id,
@@ -186,28 +198,29 @@ function handleResults(fname, pollPath, callback, res, err){
               [scores.Level[0][0].m_value, scores.Level[9][0].m_value];
             var replay = db_Replay({
               Id: id,
-              Build: res.header.m_version.m_build,
-              MapName: res.details.m_title,
+              Build: header.m_version.m_build,
+              MapName: details.m_title,
               GameType: gametype,
-              WinningTeam: res.talents[0].m_stringData[1].m_value === 'Win' ? 0 : 1,
+              WinningTeam: talents[0].m_stringData[1].m_value === 'Win' ? 0 : 1,
               Team0Level: lvl[0],
               Team1Level: lvl[1],
               GameLength: scores.Takedowns[0][0].m_time,
-              TimePlayed: res.details.m_timeUTC,
+              TimePlayed: details.m_timeUTC,
               TimeSubmitted: Date.now(),
               Players: players
             });
 
+            // save to database
             replay.save(function(err){
               if(err){
                 if(err.message.indexOf('duplicate') > -1){
-                  pollRes(pollPath, 1);
+                  pollRes(pollPath, 1, fname);
                 } else {
-                  pollRes(pollPath, 0);
+                  pollRes(pollPath, 0, fname);
                   logger.log('info', '[REPLAY] save error: ' + err.message);
                 }
               } else {
-                pollRes(pollPath, gametype);
+                pollRes(pollPath, gametype, fname);
               }
               callback();
             });
@@ -216,18 +229,18 @@ function handleResults(fname, pollPath, callback, res, err){
         });
 
       }
-
-    // catch errors
     } catch(err) {
+      // encountered error classifying or storing data
       logger.log('info', '[REPLAY] classification error: ' + err.message);
-      pollRes(pollPath, 0);
+      pollRes(pollPath, 0, fname);
       callback();
     }
+  } else {
+    // missing data from replay
+    logger.log('info', '[REPLAY] processing error');
+    pollRes(pollPath, 0, fname);
+    callback();
 
-    // delete the replay
-    fs.unlink(__dirname + '/filetmp/' + fname + '.StormReplay', (err) => {
-      if(err) logger.log('info', '[FILE] delete error: ' + err.message);
-    });
   }
 }
 
@@ -264,7 +277,7 @@ io.on('connection', function(socket){
 });
 
 // returns a response to a polling socket
-function pollRes(pollPath, responseCode){
+function pollRes(pollPath, responseCode, fname){
   var p = polls[pollPath];
   if(!p) return false;
 
@@ -272,6 +285,11 @@ function pollRes(pollPath, responseCode){
 
   if(p.socket)
     p.socket.emit('fileComplete', p.status.length, responseCode);
+
+  if(fname)
+    fs.unlink(__dirname + '/filetmp/' + fname + '.StormReplay', (err) => {
+      if(err) logger.log('info', '[FILE] delete error: ' + err.message);
+    });
 }
 
 // reject wildcard requests
