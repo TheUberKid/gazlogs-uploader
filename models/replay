@@ -3,9 +3,43 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
+var playerSchema = new Schema({
+  Name: String,
+  ToonId: Number,
+  AI: Boolean,
+  Hero: String,
+  Team: Number,
+  SoloKill: Number,
+  Assists: Number,
+  Deaths: Number,
+  ExperienceContribution: Number,
+  Healing: Number,
+  SiegeDamage: Number,
+  HeroDamage: Number,
+  DamageTaken: Number,
+  MercCampCaptures: Number,
+  TimeSpentDead: Number,
+  Tier1Talent: String,
+  Tier2Talent: String,
+  Tier3Talent: String,
+  Tier4Talent: String,
+  Tier5Talent: String,
+  Tier6Talent: String,
+  Tier7Talent: String,
+  MVP: Boolean
+});
 var replaySchema = new Schema({
-  map: {type: String, required: true},
-  gamemode: {type: Number, required: true}
+  Id: {type: Number, required: true, unique: true},
+  Build: {type: String, required: true},
+  MapName: {type: String, required: true},
+  GameType: {type: Number, required: true},
+  Players: {type: [playerSchema], required: true},
+  WinningTeam: {type: Number, required: true},
+  Team0Level: {type: Number, required: true},
+  Team1Level: {type: Number, required: true},
+  GameLength: {type: Number, required: true},
+  TimePlayed: {type: Number, required: true},
+  TimeSubmitted: {type: Number, required: true},
 });
 
 var Replay = mongoose.model('Replay', replaySchema);
