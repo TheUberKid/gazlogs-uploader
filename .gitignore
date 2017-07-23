@@ -1,4 +1,5 @@
 .DS_Store
 node_modules
 filetmp/*
+!filetmp/.gitkeep
 includes/keys.js
