@@ -4,7 +4,7 @@
 var logger = require('winston');
 const config = require('./includes/config');
 var async = require('async');
-var heroprotocol = require('./heroprotocol');
+var heroprotocol = require('heroprotocol');
 
 // express middleware
 var compression = require('compression');
@@ -40,10 +40,12 @@ app.use(compression())
 app.post('/', function(req, res){
   if(!req.files) return res.status(200).send('nofile');
 
-  // send a path for polling
+  // send a path for the client to poll the server for results via socket.io
   var pollPath = Math.floor(Math.random()*10000000);
   polls[pollPath] = new Poll(pollPath, Object.keys(req.files).length);
   res.status(200).send(pollPath.toString());
+
+  // create a timer to check for poll expiration if a poll is left running
   setTimeout(function(){
     var d = new Date().getTime();
     for(var i in polls){
@@ -54,12 +56,13 @@ app.post('/', function(req, res){
     }
   }, 1000*60*20);
 
+  // queue submitted files for processing
   queueFiles(req.files, pollPath);
 });
 
-// file queue
+// processing file queue
 var queue = async.queue(function(args, callback){
-  // validate files
+  // validate files for proper extension and mimetype
   if(args.f.name.toLowerCase().endsWith('.stormreplay')
   && args.f.mimetype === 'application/octet-stream'){
     process(args.f, args.pollPath, callback);
@@ -70,7 +73,7 @@ var queue = async.queue(function(args, callback){
   }
 }, 2);
 
-// run through files but pause every nth file to allow async operations to finish
+// convert files from object to array, then add to the queue
 function queueFiles(fileobj, pollPath){
   var n = 0;
   var files = Object.keys(fileobj).map(
@@ -95,6 +98,7 @@ function process(file, pollPath, callback){
         if(err) logger.log('info', '[FILE] delete error: ' + err.message);
       });
     } else {
+      // all good? extract data from the replay
       runReplay(fname, pollPath, callback);
     }
   });
@@ -162,6 +166,7 @@ function runReplay(fname, pollPath, callback){
             for(var i in tmp) scores[tmp[i].m_name] = tmp[i].m_values;
             var mvp = !!scores.EndOfMatchAwardMVPBoolean;
 
+            // add each player to database object
             var players = [];
             for(var i=0; i<10; i++){
               var p = details.m_playerList[i];
@@ -170,7 +175,7 @@ function runReplay(fname, pollPath, callback){
                 Name: p.m_name,
                 ToonId: p.m_toon.m_id,
                 AI: p.m_toon.m_id === 0,
-                Hero: p.m_hero,
+                Hero: initdata.m_lobbyState.m_slots[i].m_hero,
                 Team: p.m_teamId,
                 SoloKill: scores.SoloKill[i][0].m_value,
                 Assists: scores.Assists[i][0].m_value,
@@ -204,8 +209,8 @@ function runReplay(fname, pollPath, callback){
               WinningTeam: talents[0].m_stringData[1].m_value === 'Win' ? 0 : 1,
               Team0Level: lvl[0],
               Team1Level: lvl[1],
-              GameLength: scores.Takedowns[0][0].m_time,
-              TimePlayed: details.m_timeUTC,
+              GameLength: header.m_elapsedGameLoops,
+              TimePlayed: new Date(details.m_timeUTC / 10000 - 11644473600000).getTime(),
               TimeSubmitted: Date.now(),
               Players: players
             });
@@ -256,12 +261,15 @@ var Poll = function(path, total){
 // handle socket creation and disconnect (for polling)
 io.on('connection', function(socket){
 
+  // when client submits a polling path through socket.io
   socket.on('pollPath', function(path){
     if(polls[path]){
+      // if correct path, register the socket with the poll path and update current progress
       polls[path].socket = socket;
       socket.path = path;
       socket.emit('fileProgress', polls[path].status);
     } else {
+      // otherwise, disconnect the socket
       socket.disconnect();
       logger.log('info', '[POLL] incorrect path requested');
     }
@@ -276,7 +284,7 @@ io.on('connection', function(socket){
 
 });
 
-// returns a response to a polling socket
+// returns a result to a socket
 function pollRes(pollPath, responseCode, fname){
   var p = polls[pollPath];
   if(!p) return false;
@@ -292,7 +300,7 @@ function pollRes(pollPath, responseCode, fname){
     });
 }
 
-// reject wildcard requests
+// reject all GET requests
 app.get('*', function(req, res){
   res.status(404);
 });

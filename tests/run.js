@@ -1,4 +1,4 @@
-const heroprotocol = require('../heroprotocol');
+const heroprotocol = require('heroprotocol');
 
 const file = process.argv[2];
 
@@ -47,6 +47,6 @@ if (details && header && initdata && scores && talents) {
   }
 
   console.log('WINNER: ' + (talents[0].m_stringData[1].m_value === 'Win' ? 'BLUE' : 'RED'));
-  console.log('DURATION: ' + parseInt(header.elapsedGameLoops / 16) + ' seconds');
+  console.log('DURATION: ' + parseInt(header.m_elapsedGameLoops / 16) + ' seconds');
 
 }
