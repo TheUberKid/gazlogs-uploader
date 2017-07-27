@@ -16,8 +16,6 @@ var efu = require('express-fileupload');
 // database
 var db_Replay = require('./models/replay');
 var db_User = require('./models/user');
-var mongoose = require('mongoose');
-mongoose.connect(config.mongodb_key);
 
 // server
 var express = require('express'),
@@ -26,7 +24,6 @@ var express = require('express'),
 
 // redirect to https
 if(!config.debug){
-  app.get('*', routing.forceHTTPS);
   serv = require('http').Server(app);
 } else {
   // https server created in this way only on localhost testing (debug mode)
@@ -41,17 +38,17 @@ if(!config.debug){
 var io = require('socket.io')(serv);
 
 // receive requests
-app.use(compression())
-   .use(efu({
-     safeFileNames: /[^a-zA-Z0-9.]+/g,
-     limits: { fileSize: 4 * 1024 * 1024 }
-   }))
-   .use(function(req, res, next){
+app.use(function(req, res, next){
      res.header('Access-Control-Allow-Origin', '*');
      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
      res.header('Access-Control-Allow-Headers', 'Content-Type');
      next();
-   });
+   })
+   .use(compression())
+   .use(efu({
+     safeFileNames: /[^a-zA-Z0-9.]+/g,
+     limits: { fileSize: 4 * 1024 * 1024 }
+   }))
 
 app.post('/', function(req, res){
   if(!req.files) return res.status(200).send('nofile');
