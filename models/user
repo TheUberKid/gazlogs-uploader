@@ -1,0 +1,17 @@
+// user schema
+
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+var settings = new Schema({
+  private: {type: Boolean, default: true}
+});
+var userSchema = new Schema({
+  battletag: {type: Number, required: true, unique: true},
+  username: {type: String, required: true},
+  doubloons: {type: Number, required: true, default: 0},
+  settings: {type: settings, required: true, default: {}}
+});
+
+var User = mongoose.model('User', userSchema);
+module.exports = User;

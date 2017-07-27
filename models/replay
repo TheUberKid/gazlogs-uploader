@@ -31,6 +31,8 @@ var playerSchema = new Schema({
 var replaySchema = new Schema({
   Id: {type: Number, required: true, unique: true},
   Build: {type: String, required: true},
+  Region: {type: Number, required: true},
+  SubmittedBy: {type: Number},
   MapName: {type: String, required: true},
   GameType: {type: Number, required: true},
   Players: {type: [playerSchema], required: true},

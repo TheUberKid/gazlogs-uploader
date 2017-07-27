@@ -15,14 +15,30 @@ var efu = require('express-fileupload');
 
 // database
 var db_Replay = require('./models/replay');
+var db_User = require('./models/user');
 var mongoose = require('mongoose');
 mongoose.connect(config.mongodb_key);
 
 // server
 var express = require('express'),
     app = express(),
-    serv = require('http').Server(app),
-    io = require('socket.io')(serv);
+    serv;
+
+// redirect to https
+if(!config.debug){
+  app.get('*', routing.forceHTTPS);
+  serv = require('http').Server(app);
+} else {
+  // https server created in this way only on localhost testing (debug mode)
+  serv = require('https').createServer({
+    key: config.ssl_key,
+    cert: config.ssl_cert,
+    requestCert: false,
+    rejectUnauthorized: false
+  }, app);
+}
+
+var io = require('socket.io')(serv);
 
 // receive requests
 app.use(compression())
@@ -42,19 +58,8 @@ app.post('/', function(req, res){
 
   // send a path for the client to poll the server for results via socket.io
   var pollPath = Math.floor(Math.random()*10000000);
-  polls[pollPath] = new Poll(pollPath, Object.keys(req.files).length);
+  polls[pollPath] = new Poll(pollPath, Object.keys(req.files).length, req.body ? req.body.ultoken : undefined);
   res.status(200).send(pollPath.toString());
-
-  // create a timer to check for poll expiration if a poll is left running
-  setTimeout(function(){
-    var d = new Date().getTime();
-    for(var i in polls){
-      if(d - polls[i].time > 1000*60*15 && polls[i].status.length >= polls[i].total && !polls[i].socket){
-        logger.log('info', '[POLL] poll expired');
-        delete polls[i];
-      }
-    }
-  }, 1000*60*20);
 
   // queue submitted files for processing
   queueFiles(req.files, pollPath);
@@ -204,6 +209,8 @@ function runReplay(fname, pollPath, callback){
             var replay = db_Replay({
               Id: id,
               Build: header.m_version.m_build,
+              Region: details.m_playerList[0].m_toon.m_region,
+              SubmittedBy: polls[pollPath].ultoken ? polls[pollPath].ultoken : 0,
               MapName: details.m_title,
               GameType: gametype,
               WinningTeam: talents[0].m_stringData[1].m_value === 'Win' ? 0 : 1,
@@ -251,11 +258,14 @@ function runReplay(fname, pollPath, callback){
 
 // polling objects
 var polls = {};
-var Poll = function(path, total){
-  this.time = new Date().getTime();
+var Poll = function(path, total, ultoken){
   this.path = path;
+  this.done = 0;
   this.total = total;
+  if(ultoken) this.ultoken = ultoken;
+  this.payoff = 0;
   this.status = [];
+  this.disconnected = false;
 }
 
 // handle socket creation and disconnect (for polling)
@@ -275,7 +285,11 @@ io.on('connection', function(socket){
     }
   });
   socket.on('disconnect', function(){
-    if(socket.path) delete polls[socket.path];
+    if(socket.path){
+      var p = polls[socket.path];
+      p.disconnected = true;
+      if(p.done === p.total) delete polls[socket.path];
+    }
     socket.disconnect();
   });
   socket.on('error', function(err){
@@ -284,12 +298,21 @@ io.on('connection', function(socket){
 
 });
 
-// returns a result to a socket
+var payoffs = {
+  5: 100, // unranked
+  6: 50, // quick match
+  7: 100, // hero league
+  8: 125 // team league
+}
+
+// returns a result to a socket and updates a poll with payoffs
 function pollRes(pollPath, responseCode, fname){
   var p = polls[pollPath];
   if(!p) return false;
 
   p.status.push(responseCode);
+  p.done++;
+  if(payoffs[responseCode]) p.payoff += payoffs[responseCode];
 
   if(p.socket)
     p.socket.emit('fileComplete', p.status.length, responseCode);
@@ -298,6 +321,18 @@ function pollRes(pollPath, responseCode, fname){
     fs.unlink(__dirname + '/filetmp/' + fname + '.StormReplay', (err) => {
       if(err) logger.log('info', '[FILE] delete error: ' + err.message);
     });
+
+  // credit doubloons to user account when done
+  if(p.done === p.total){
+    if(p.payoff > 0 && p.ultoken){
+      db_User.update({battletag: p.ultoken}, {
+        $inc: {doubloons: p.payoff}
+      }, function(err){
+        if(err) logger.log('info', '[POLL] doubloon count update error: ' + err.message)
+      });
+    }
+    if(p.disconnected) delete polls[pollPath];
+  }
 }
 
 // reject all GET requests

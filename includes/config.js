@@ -9,22 +9,19 @@ function moduleAvailable(name){
 }
 
 // test for environment by checking existence of keys module (ignored by git) and load the relevant config
-// hide secret keys in either local keys.js module or as heroku environment variables
-var mongodb_key, debug;
+// hide secret keys and certificates in either local keys.js module or as heroku environment variables
+var Keys;
 if(moduleAvailable('./keys')){
-  const Keys = require('./keys');
-  mongodb_key = Keys.mongodb_key;
-  debug = true;
+  Keys = require('./keys');
 } else {
-  mongodb_key = process.env.mongodb_key;
-  debug = false;
+  Keys = process.env;
 }
 
-// non-secret keys can be shown here
-const port = debug ? 3000 : process.env.PORT;
-
 module.exports = {
-  'mongodb_key': mongodb_key,
-  'debug': debug,
-  'port': port
+  mongodb_key: Keys.mongodb_key,
+  debug: moduleAvailable('./keys'),
+  port: Keys.PORT || 3000,
+  // ssl is set up in this way only for localhost
+  ssl_key: Keys.ssl_key,
+  ssl_cert: Keys.ssl_cert
 }
