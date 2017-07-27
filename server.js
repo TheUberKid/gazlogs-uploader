@@ -14,6 +14,8 @@ var fs = require('fs-extra');
 var efu = require('express-fileupload');
 
 // database
+var mongoose = require('mongoose');
+mongoose.connect(config.mongodb_key);
 var db_Replay = require('./models/replay');
 var db_User = require('./models/user');
 
@@ -38,17 +40,17 @@ if(!config.debug){
 var io = require('socket.io')(serv);
 
 // receive requests
-app.use(function(req, res, next){
-     res.header('Access-Control-Allow-Origin', '*');
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-     res.header('Access-Control-Allow-Headers', 'Content-Type');
-     next();
-   })
-   .use(compression())
+app.use(compression())
    .use(efu({
      safeFileNames: /[^a-zA-Z0-9.]+/g,
      limits: { fileSize: 4 * 1024 * 1024 }
    }))
+   .use(function(req, res, next){
+     res.header('Access-Control-Allow-Origin', '*');
+     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+     res.header('Access-Control-Allow-Headers', 'Content-Type');
+     next();
+   });
 
 app.post('/', function(req, res){
   if(!req.files) return res.status(200).send('nofile');
