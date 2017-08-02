@@ -133,7 +133,7 @@ function runReplay(fname, pollPath, callback){
             for(var i=0; i<10; i++){
               var p = details.m_playerList[i];
               var t = talents[i].m_stringData;
-              players.push({
+              var player = {
                 Name: p.m_name,
                 BattleTag: getBattleTags(file, p.m_name),
                 ToonId: p.m_toon.m_id,
@@ -156,18 +156,6 @@ function runReplay(fname, pollPath, callback){
                 MercCampCaptures: scores.MercCampCaptures[i][0].m_value,
                 TimeSpentDead: scores.TimeSpentDead[i][0].m_value,
                 TimeCCdEnemyHeroes: scores.TimeCCdEnemyHeroes[i][0].m_value,
-                TimeSilencingEnemyHeroes: scores.TimeSilencingEnemyHeroes[i][0].m_value,
-                TimeRootingEnemyHeroes: scores.TimeRootingEnemyHeroes[i][0].m_value,
-                TimeStunningEnemyHeroes: scores.TimeStunningEnemyHeroes[i][0].m_value,
-                ClutchHealsPerformed: scores.ClutchHealsPerformed[i][0].m_value,
-                EscapesPerformed: scores.EscapesPerformed[i][0].m_value,
-                VengeancesPerformed: scores.VengeancesPerformed[i][0].m_value,
-                OutnumberedDeaths: scores.OutnumberedDeaths[i][0].m_value,
-                TeamfightEscapesPerformed: scores.TeamfightEscapesPerformed[i][0].m_value,
-                TeamfightHealingDone: scores.TeamfightHealingDone[i][0].m_value,
-                TeamfightDamageTaken: scores.TeamfightDamageTaken[i][0].m_value,
-                TeamfightHeroDamage: scores.TeamfightHeroDamage[i][0].m_value,
-                HighestKillStreak: scores.HighestKillStreak[i][0].m_value,
                 Tier1Talent: t[3] ? t[3].m_value : '',
                 Tier2Talent: t[4] ? t[4].m_value : '',
                 Tier3Talent: t[5] ? t[5].m_value : '',
@@ -176,7 +164,24 @@ function runReplay(fname, pollPath, callback){
                 Tier6Talent: t[8] ? t[8].m_value : '',
                 Tier7Talent: t[9] ? t[9].m_value : '',
                 MVP: mvp ? scores.EndOfMatchAwardMVPBoolean[i][0].m_value === 1 : false
-              });
+              }
+              if(scores.TimeSilencingEnemyHeroes){
+                Object.assign(player, {
+                  TimeSilencingEnemyHeroes: scores.TimeSilencingEnemyHeroes[i][0].m_value,
+                  TimeRootingEnemyHeroes: scores.TimeRootingEnemyHeroes[i][0].m_value,
+                  TimeStunningEnemyHeroes: scores.TimeStunningEnemyHeroes[i][0].m_value,
+                  ClutchHealsPerformed: scores.ClutchHealsPerformed[i][0].m_value,
+                  EscapesPerformed: scores.EscapesPerformed[i][0].m_value,
+                  VengeancesPerformed: scores.VengeancesPerformed[i][0].m_value,
+                  OutnumberedDeaths: scores.OutnumberedDeaths[i][0].m_value,
+                  TeamfightEscapesPerformed: scores.TeamfightEscapesPerformed[i][0].m_value,
+                  TeamfightHealingDone: scores.TeamfightHealingDone[i][0].m_value,
+                  TeamfightDamageTaken: scores.TeamfightDamageTaken[i][0].m_value,
+                  TeamfightHeroDamage: scores.TeamfightHeroDamage[i][0].m_value,
+                  HighestKillStreak: scores.HighestKillStreak[i][0].m_value
+                });
+              }
+              players.push(player);
             }
 
             var lvl = scores.TeamLevel ?
