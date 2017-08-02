@@ -273,7 +273,10 @@ function pollRes(pollPath, responseCode, fname){
 
   p.status.push(responseCode);
   p.done++;
-  if(dictionary.payoffs[responseCode]) p.payoff += dictionary.payoffs[responseCode];
+  if(dictionary.payoffs[responseCode]){
+    p.payoff += dictionary.payoffs[responseCode];
+    p.numReplays++;
+  }
 
   if(p.socket)
     p.socket.emit('fileComplete', p.status.length, responseCode);
@@ -287,7 +290,10 @@ function pollRes(pollPath, responseCode, fname){
   if(p.done === p.total){
     if(p.payoff > 0 && p.ultoken){
       db_User.update({battletag: p.ultoken}, {
-        $inc: {doubloons: p.payoff}
+        $inc: {
+          doubloons: p.payoff,
+          replaysUploaded: p.numReplays
+        }
       }, function(err){
         if(err) logger.log('info', '[POLL] doubloon count update error: ' + err.message)
       });
@@ -303,6 +309,7 @@ var Poll = function(path, total, ultoken){
   this.total = total;
   if(ultoken) this.ultoken = ultoken;
   this.payoff = 0;
+  this.numReplays = 0;
   this.status = [];
   this.disconnected = false;
 }

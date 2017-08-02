@@ -10,6 +10,7 @@ var userSchema = new Schema({
   battletag: {type: Number, required: true, unique: true, index: true},
   username: {type: String, required: true},
   doubloons: {type: Number, required: true, default: 0},
+  replaysUploaded: {type: Number, required: true, default: 0},
   settings: {type: settings, required: true, default: {}}
 });
 
