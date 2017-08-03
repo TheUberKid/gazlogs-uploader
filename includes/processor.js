@@ -65,11 +65,8 @@ function process(file, pollPath, callback){
   file.mv(__dirname + '/../filetmp/' + fname + '.StormReplay', function(err){
     if(err){
       logger.log('info', '[FILE] move error: ' + err.message);
-      pollRes(pollPath, 0, fname);
+      pollRes(pollPath, 0);
       callback();
-      fs.unlink(__dirname + '/../filetmp/' + fname + '.StormReplay', (err) => {
-        if(err) logger.log('info', '[FILE] delete error: ' + err.message);
-      });
     } else {
       // all good? extract data from the replay
       runReplay(fname, pollPath, callback);
@@ -80,14 +77,15 @@ function process(file, pollPath, callback){
 // run handle results of a replay
 function runReplay(fname, pollPath, callback){
 
-  // get lightweight data first for validation purposes
-  var file = __dirname + '/../filetmp/' + fname + '.StormReplay'
-  const details = heroprotocol.get(heroprotocol.DETAILS, file);
-  const header = heroprotocol.get(heroprotocol.HEADER, file);
-  const initdata = heroprotocol.get(heroprotocol.INITDATA, file).m_syncLobbyState;
+  try {
 
-  if(details && header && initdata){
-    try {
+    // get lightweight data first for validation purposes
+    var file = __dirname + '/../filetmp/' + fname + '.StormReplay'
+    const details = heroprotocol.get(heroprotocol.DETAILS, file);
+    const header = heroprotocol.get(heroprotocol.HEADER, file);
+    const initdata = heroprotocol.get(heroprotocol.INITDATA, file).m_syncLobbyState;
+
+    if(details && header && initdata){
 
       // check if gametype matches
       var gametype = dictionary.gametypes[initdata.m_gameDescription.m_gameOptions.m_ammId];
@@ -222,18 +220,19 @@ function runReplay(fname, pollPath, callback){
         });
 
       }
-    } catch(err) {
-      // encountered error classifying or storing data
-      logger.log('info', '[REPLAY] classification error: ' + err.message);
+    } else {
+      // missing data from replay
+      logger.log('info', '[REPLAY] processing error');
       pollRes(pollPath, 0, fname);
       callback();
+
     }
-  } else {
-    // missing data from replay
-    logger.log('info', '[REPLAY] processing error');
+  } catch(err) {
+    
+    // encountered error classifying or storing data
+    logger.log('info', '[REPLAY] classification error: ' + err.message);
     pollRes(pollPath, 0, fname);
     callback();
-
   }
 }
 
