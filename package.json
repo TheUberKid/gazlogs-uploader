@@ -4,8 +4,8 @@
   "description": "Uploader for Gazlogs (since Heroku does not allow routing web connections to a worker dyno)",
   "main": "index.js",
   "scripts": {
+    "postinstall": "node node_modules/heroprotocol/postinstall.js",
     "start": "nf start",
-    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",

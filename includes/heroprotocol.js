@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const MPQArchive = exports.MPQArchive = require('mpyqjs/mpyq').MPQArchive;
 const protocol29406 = exports.protocol =  require('heroprotocol/lib/protocol29406');
+var logger = require('winston');
 
 const version = exports.version = require('heroprotocol/package.json').version;
 
@@ -79,12 +80,18 @@ exports.open = function (file, noCache) {
       archive.error = err;
     }
 
-    // set header to proper protocol
-    archive.data[HEADER] = parseStrings(archive.protocol.decodeReplayHeader(archive.header.userDataHeader.content));
+    if (archive.protocol) {
 
-    archive.get = function (file) {
-      return exports.get(file, archive);
-    };
+      // set header to proper protocol
+      archive.data[HEADER] = parseStrings(archive.protocol.decodeReplayHeader(archive.header.userDataHeader.content));
+
+      archive.get = function (file) {
+        return exports.get(file, archive);
+      };
+
+    } else {
+      archive.error = 'protocol ' + archive.baseBuild + ' not found';
+    }
 
   } else {
     // load archive from cache
@@ -99,7 +106,8 @@ exports.get = function (archiveFile, archive, keys) {
   let data;
   archive = exports.open(archive);
 
-  if (archive instanceof Error) {
+  if (archive instanceof Error || archive.error) {
+    logger.log('info', 'Heroprotocol: ' + archive.error);
     return data;
   }
 
