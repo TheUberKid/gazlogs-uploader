@@ -108,12 +108,14 @@ function runReplay(fname, pollPath, callback){
             } else {
 
               // otherwise, good to go. Read heavier objects
-              var scores = heroprotocol.get(heroprotocol.TRACKER_EVENTS, file, {
-                '_event' : ['NNet.Replay.Tracker.SScoreResultEvent']
-              });
-              const talents = heroprotocol.get(heroprotocol.TRACKER_EVENTS, file, {
-                'm_eventName' : ['EndOfGameTalentChoices']
-              });
+              var trackers = heroprotocol.get(heroprotocol.TRACKER_EVENTS, file, [{
+                '_event' : 'NNet.Replay.Tracker.SScoreResultEvent'
+              }, {
+                'm_eventName' : 'EndOfGameTalentChoices'
+              }]);
+              var scores = trackers[0];
+              var talents = trackers[1];
+
               if(!scores || !talents){
                 logger.log('info', '[REPLAY] tracker events processing error');
                 pollRes(pollPath, 0, fname);
@@ -133,8 +135,7 @@ function runReplay(fname, pollPath, callback){
                 var p = details.m_playerList[i];
                 var t = talents[i].m_stringData;
                 var player = {
-                  Name: p.m_name,
-                  BattleTag: getBattleTags(file, p.m_name),
+                  BattleTag: p.m_name + '#' + getBattleTags(file, p.m_name),
                   ToonId: p.m_toon.m_id,
                   AI: p.m_toon.m_id === 0,
                   Hero: initdata.m_lobbyState.m_slots[i].m_hero,
@@ -183,10 +184,23 @@ function runReplay(fname, pollPath, callback){
                 players.push(player);
               }
 
+              // draft data
+              var draft;
+              if(gametype === 5 || gametype === 7 || gametype === 8){
+                var attributes = heroprotocol.get(heroprotocol.ATTRIBUTES_EVENTS, file).scopes['16'];
+                if(attributes && attributes['4030'])
+                  draft = {
+                    Team0Ban1: attributes['4023'][0].value,
+                    Team0Ban2: attributes['4025'][0].value,
+                    Team1Ban1: attributes['4028'][0].value,
+                    Team1Ban2: attributes['4030'][0].value
+                  }
+              }
+
               var lvl = scores.TeamLevel ?
                 [scores.TeamLevel[0][0].m_value, scores.TeamLevel[9][0].m_value] :
                 [scores.Level[0][0].m_value, scores.Level[9][0].m_value];
-              var replay = db_Replay({
+              var replay = {
                 Id: id,
                 Build: header.m_version.m_build,
                 Region: details.m_playerList[0].m_toon.m_region,
@@ -199,8 +213,10 @@ function runReplay(fname, pollPath, callback){
                 GameLength: header.m_elapsedGameLoops,
                 TimePlayed: new Date(details.m_timeUTC / 10000 - 11644473600000).getTime(),
                 TimeSubmitted: Date.now(),
-                Players: players
-              });
+                Players: players,
+              }
+              if(draft) replay.Draft = draft;
+              replay = db_Replay(replay);
 
               // save to database
               replay.save(function(err){

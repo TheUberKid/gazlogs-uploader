@@ -102,7 +102,7 @@ exports.open = function (file, noCache) {
 };
 
 // returns the content of a file in a replay archive
-exports.get = function (archiveFile, archive, keys) {
+exports.get = function (archiveFile, archive, keys, keys2) {
   let data;
   archive = exports.open(archive);
 
@@ -126,15 +126,14 @@ exports.get = function (archiveFile, archive, keys) {
         if (keys) {
           // protocol function to call is a generator
           data = [];
+          for (var i = 0, j = keys.length; i < j; i++) data.push([]);
           for (let event of archive.protocol[decoderMap[archiveFile]](archive.readFile(archiveFile))) {
 
-            keyLoop:
             // check validity with whitelisted keys
-            for (var key in keys) {
-              for (var i = 0, j = keys[key].length; i < j; i++) {
-                if (parseStrings(event)[key] === keys[key][i]){
-                    data.push(parseStrings(event));
-                    break keyLoop;
+            for (var i = 0, j = keys.length; i < j; i++){
+              for (var key in keys[i]) {
+                if (parseStrings(event)[key] === keys[i][key]){
+                    data[i].push(parseStrings(event));
                 }
               }
             }

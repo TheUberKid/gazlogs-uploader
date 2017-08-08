@@ -3,9 +3,15 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
+var draftSchema = new Schema({
+  Team0Ban1: String,
+  Team0Ban2: String,
+  Team1Ban1: String,
+  Team1Ban2: String
+});
+
 var playerSchema = new Schema({
-  Name: String,
-  BattleTag: Number,
+  BattleTag: String,
   ToonId: Number,
   AI: Boolean,
   Hero: String,
@@ -52,10 +58,11 @@ var replaySchema = new Schema({
   Id: {type: Number, required: true, unique: true, index: true},
   Build: {type: String, required: true},
   Region: {type: Number, required: true},
-  SubmittedBy: {type: Number},
+  SubmittedBy: {type: String},
   MapName: {type: String, required: true},
   GameType: {type: Number, required: true},
   Players: {type: [playerSchema], required: true},
+  Draft: {type: draftSchema},
   WinningTeam: {type: Number, required: true},
   Team0Level: {type: Number, required: true},
   Team1Level: {type: Number, required: true},
