@@ -29,7 +29,28 @@ var dictionary = {
     6: 50, // quick match
     7: 100, // hero league
     8: 125 // team league
+  },
+  maps: {
+    'Battlefield of Eternity': {ImageURL: 'BattlefieldofEternity', Translations: 'Campo de Batalha da Eternidade, Campo de batalla de la Eternidad, 永恆戰場, 永恒战场, 영원의 전쟁터, Campos de Batalla de la Eternidad, Schlachtfeld der Ewigkeit, Champs de l’Éternité, Вечная битва, Campi di Battaglia Eterni, Pole Bitewne Wieczności'},
+    'Blackheart\'s Bay': {ImageURL: 'BlackheartsBay', Translations: 'Baie de Cœur-Noir, Schwarzherzbucht, Bahía de Almanegra, Zatoka Czarnosercego, Baia di Cuornero, Бухта Черносерда, Baía do Coração Negro, 블랙하트 항만, 黑心湾, 黑心灣'},
+    'Braxis Holdout': {ImageURL: 'BraxisHoldout', Translations: 'Endstation Braxis, 布萊西斯實驗所, 브락시스 항전, Resistência de Braxis, Бойня на Браксисе, Laboratoire de Braxis, Resistencia en Braxis, 布拉克西斯禁区, 布莱克西斯禁区, Placówka na Braxis, Distaccamento di Braxis'},
+    'Cursed Hollow': {ImageURL: 'CursedHollow', Translations: 'Val Maudit, Verfluchtes Tal, Cuenca Maldita, Valle Maledetta, Przeklęta Kotlina, Проклятая лощина, Creux Maudit, Hondonada maldita, Clareira Maldita, 저주받은 골짜기, 诅咒谷, 詛咒谷地, Cursed Hollow - Scaling Test, Val Maudit - Test d’échelonnage, Valle Maledetta (Test adattamento), Проклятая лощина:  тест параметров, 詛咒谷地 - 調整測試, Przeklęta Kotlina – Test skalowania, 저주받은 골짜기 - 수치 변경 테스트, Clareira Maldita - Teste de Escalonamento, Verfluchtes Tal – Skalierungstest, 诅咒谷 - 数值测试, Cuenca Maldita:  prueba de escala, Hondonada maldita - Mapa de prueba, Sandbox (Cursed Hollow), Bac à sable (val Maudit), Mapa Fechado (Clareira Maldita), Sandbox (Valle Maledetta), Prueba grupal (Hondonada maldita), 샌드박스 (저주받은 골짜기), Песочница (Проклятая лощина), 沙盒（诅咒谷）, Terreno de pruebas (Cuenca Maldita), Sandbox (Verfluchtes Tal), Sandbox (Przeklęta Kotlina), 試驗模式（詛咒谷地）, Sandbox (Hondonada maldita)'},
+    'Dragon Shire': {ImageURL: 'DragonShire', Translations: 'Comté du dragon, Drachengärten, Condado del Dragón, Smocze Włości, Contea del Drago, Драконий край, Comarca del dragón, Condado do Dragão, 용의 둥지, 巨龙镇, 巨龍郡'},
+    'Garden of Terror': {ImageURL: 'GardenofTerror', Translations: 'Jardín del Terror, Ogród Grozy, Jardins de terreur, Garten der Ängste, Сад Ужасов, Giardino del Terrore, Jardim do Terror, PLACEHOLDER, 공포의 정원, 恐魔园, 恐怖花園'},
+    'Hanamura': {ImageURL: 'Hanamura', Translations: '花村, 하나무라, Ханамура, Hanamura #6'},
+    'Haunted Mines': {ImageURL: 'HauntedMines', Translations: 'Mines hantées, Geisterminen, Minas Encantadas, Nawiedzone Kopalnie, Miniere Infestate, Призрачные копи, Minas embrujadas, Mina Assombrada, 죽음의 광산, 鬼灵矿, 亡骸礦坑'},
+    'Infernal Shrines': {ImageURL: 'InfernalShrines', Translations: 'Santuarios infernales, Santuários Infernais, Sagrarios Infernales, Sanctuaires infernaux, Höllenschreine, 煉獄聖壇, 불지옥 신단, Piekielne kapliczki, Altari Infernali, Оскверненные святилища, 炼狱圣坛'},
+    'Sky Temple': {ImageURL: 'SkyTemple', Translations: 'Temple céleste, Templo celeste, 天空殿, Tempel des Himmels, Podniebna Świątynia, Tempio Celeste, Небесный храм, 天空神殿, 하늘 사원'},
+    'Tomb of the Spider Queen': {ImageURL: 'TomboftheSpiderQueen', Translations: 'Tumba de la reina araña, 蛛后之墓, Tumba da Aranha Rainha, 거미 여왕의 무덤, Tombe de la Reine araignée, Grabkammer der Spinnenkönigin, Grobowiec Pajęczej Królowej, Tomba della Regina Ragno, Гробница королевы пауков, 蛛后墓'},
+    'Towers of Doom': {ImageURL: 'TowersofDoom', Translations: 'Torres da Perdição, Torres de Fatalidad, Torres de la perdición, Tours du destin, Türme des Unheils, Wieże Zagłady, Башни Рока, 厄運之塔, 末日塔, 파멸의 탑, Torri della Rovina'},
+    'Warhead Junction': {ImageURL: 'WarheadJunction', Translations: 'Cruce nuclear, Estación Nuclear, Junção da Ogiva, Menace nucléaire, 핵탄두 격전지, 弹头枢纽站, 核武戰地, Ядерный полигон, Sprengkopfmanufaktur, Poligon Nuklearny, Stazione Atomica'}
   }
+}
+function getMapName(name){
+  if(dictionary.maps[name]) return name;
+  for(var i in dictionary.maps)
+    if(dictionary.maps[i].Translations.indexOf(name) > -1) return i;
+  return name;
 }
 
 // middleware for receiving files
@@ -205,7 +226,7 @@ function runReplay(fname, pollPath, callback){
                 Build: header.m_version.m_build,
                 Region: details.m_playerList[0].m_toon.m_region,
                 SubmittedBy: polls[pollPath].ultoken ? polls[pollPath].ultoken : 0,
-                MapName: details.m_title,
+                MapName: getMapName(details.m_title),
                 GameType: gametype,
                 WinningTeam: talents[0].m_stringData[1].m_value === 'Win' ? 0 : 1,
                 Team0Level: lvl[0],

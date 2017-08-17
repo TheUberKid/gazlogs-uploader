@@ -11,8 +11,8 @@ var efu = require('express-fileupload');
 
 // database
 var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
 mongoose.connect(config.mongodb_key);
+mongoose.Promise = require('bluebird');
 
 // server
 var express = require('express'),
