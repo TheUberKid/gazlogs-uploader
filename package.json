@@ -19,6 +19,7 @@
   "homepage": "https://github.com/theuberkid/gazlogs#readme",
   "dependencies": {
     "async": "^2.4.1",
+    "bluebird": "^3.5.0",
     "compression": "^1.6.2",
     "express": "^4.15.3",
     "express-fileupload": "^0.1.3",

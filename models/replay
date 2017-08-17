@@ -56,7 +56,7 @@ var playerSchema = new Schema({
 });
 var replaySchema = new Schema({
   Id: {type: Number, required: true, unique: true, index: true},
-  Build: {type: String, required: true},
+  Build: {type: Number, required: true},
   Region: {type: Number, required: true},
   SubmittedBy: {type: String},
   MapName: {type: String, required: true},
