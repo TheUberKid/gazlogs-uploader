@@ -1,18 +1,23 @@
 'use strict';
 
-// includes
 var logger = require('winston');
 const config = require('./includes/config');
+
+// database
+var mongoose = require('mongoose');
+mongoose.Promise = require('bluebird');
+mongoose.connect(config.mongodb_key, {
+  keepAlive: true,
+  reconnectTries: Number.MAX_VALUE,
+  useMongoClient: true
+});
+
+// includes
 var processor = require('./includes/processor');
 
 // express middleware
 var compression = require('compression');
 var efu = require('express-fileupload');
-
-// database
-var mongoose = require('mongoose');
-mongoose.connect(config.mongodb_key);
-mongoose.Promise = require('bluebird');
 
 // server
 var express = require('express'),

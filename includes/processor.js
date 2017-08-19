@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 // includes
 var logger = require('winston');

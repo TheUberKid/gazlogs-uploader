@@ -1,3 +1,5 @@
+'use strict';
+
 const heroprotocol = require('./heroprotocol');
 var logger = require('winston');
 var data;
