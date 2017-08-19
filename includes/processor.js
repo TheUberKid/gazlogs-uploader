@@ -52,11 +52,10 @@ function getMapName(name){
     if(dictionary.maps[i].Translations.indexOf(name) > -1) return i;
   return name;
 }
-
 // get builds
 db_Replay.distinct('Build').exec(function(err, builds){
   if(err) logger.log('info', err.message);
-  dictionary.builds = builds.slice(0, 8);
+  dictionary.builds = builds.slice(0, 16);
   logger.log('info', 'loaded builds into dictionary: ' + dictionary.builds);
 });
 
