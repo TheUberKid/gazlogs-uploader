@@ -16,19 +16,19 @@ var db_User = require('../models/user');
 // dictionaries
 var dictionary = {
   gametypes: {
-    50041: 2, // training
-    50021: 3, // vs. ai
-    50031: 4, // brawl
-    50051: 5, // unranked
-    50001: 6, // quick match
-    50061: 7, // hero league
-    50071: 8  // team league
+    50041: 3, // training
+    50021: 4, // vs. ai
+    50031: 5, // brawl
+    50051: 6, // unranked
+    50001: 7, // quick match
+    50061: 8, // hero league
+    50071: 9  // team league
   },
   payoffs: {
-    5: 100, // unranked
-    6: 50, // quick match
-    7: 100, // hero league
-    8: 125 // team league
+    6: 100, // unranked
+    7: 50, // quick match
+    8: 100, // hero league
+    9: 125 // team league
   },
   maps: {
     'Battlefield of Eternity': {ImageURL: 'BattlefieldofEternity', Translations: 'Campo de Batalha da Eternidade, Campo de batalla de la Eternidad, 永恆戰場, 永恒战场, 영원의 전쟁터, Campos de Batalla de la Eternidad, Schlachtfeld der Ewigkeit, Champs de l’Éternité, Вечная битва, Campi di Battaglia Eterni, Pole Bitewne Wieczności'},
@@ -53,6 +53,13 @@ function getMapName(name){
   return name;
 }
 
+// get builds
+db_Replay.distinct('Build').exec(function(err, builds){
+  if(err) logger.log('info', err.message);
+  dictionary.builds = builds.slice(0, 8);
+  logger.log('info', 'loaded builds into dictionary: ' + dictionary.builds);
+});
+
 // middleware for receiving files
 module.exports.receive = function(req, res){
   if(!req.files) return res.status(200).send('nofile');
@@ -67,6 +74,9 @@ module.exports.receive = function(req, res){
 }
 
 // processing file queue
+var os = require('os');
+var cores = os.cpus().length;
+logger.log('info', 'running on ' + cores + ' cores');
 var queue = async.queue(function(args, callback){
   // validate files for proper extension and mimetype
   if(args.f.name.toLowerCase().endsWith('.stormreplay')
@@ -77,7 +87,7 @@ var queue = async.queue(function(args, callback){
     pollRes(args.pollPath, 0);
     callback();
   }
-}, 2);
+}, cores);
 
 // process a replay
 function process(file, pollPath, callback){
@@ -110,8 +120,11 @@ function runReplay(fname, pollPath, callback){
 
       // check if gametype matches
       var gametype = dictionary.gametypes[initdata.m_gameDescription.m_gameOptions.m_ammId];
-      if(!gametype || gametype < 5){
+      if(!gametype || gametype < 6){
         pollRes(pollPath, gametype ? gametype : 0, fname);
+        callback();
+      } else if(header.m_version.m_baseBuild < dictionary.builds[dictionary.builds.length - 1]){
+        pollRes(pollPath, 1, fname); // if outdated
         callback();
       } else {
 
@@ -124,7 +137,7 @@ function runReplay(fname, pollPath, callback){
               pollRes(pollPath, 0, fname);
               callback();
             } else if(count > 0){
-              pollRes(pollPath, 1, fname); // duplicate found
+              pollRes(pollPath, 2, fname); // duplicate found
               callback();
             } else {
 
@@ -207,7 +220,7 @@ function runReplay(fname, pollPath, callback){
 
               // draft data
               var draft;
-              if(gametype === 5 || gametype === 7 || gametype === 8){
+              if(gametype !== 7){
                 var attributes = heroprotocol.get(heroprotocol.ATTRIBUTES_EVENTS, file).scopes['16'];
                 if(attributes && attributes['4030'])
                   draft = {
@@ -243,7 +256,7 @@ function runReplay(fname, pollPath, callback){
               replay.save(function(err){
                 if(err){
                   if(err.message.indexOf('duplicate') > -1){
-                    pollRes(pollPath, 1, fname);
+                    pollRes(pollPath, 2, fname);
                   } else {
                     pollRes(pollPath, 0, fname);
                     logger.log('info', '[REPLAY] save error: ' + err.message);
