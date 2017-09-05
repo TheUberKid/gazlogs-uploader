@@ -74,7 +74,7 @@ module.exports.receive = function(req, res){
 
 // processing file queue
 var os = require('os');
-var cores = os.cpus().length;
+var cores = os.cpus().length / 2;
 logger.log('info', 'running on ' + cores + ' cores');
 var queue = async.queue(function(args, callback){
   // validate files for proper extension and mimetype
